@@ -1,3 +1,3 @@
 # FreeDecibel
-Get your free music anytime, anywhere. Android Native Mobile App
-Powered by Androcpp, KBA & Miaumarmota
+Get your free music anytime, anywhere.
+Android Native Mobile App powered by Androcpp, KBA & Miaumarmota
