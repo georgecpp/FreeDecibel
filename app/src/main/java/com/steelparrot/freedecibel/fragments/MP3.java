@@ -1,37 +1,36 @@
 package com.steelparrot.freedecibel.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 
+
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
-import android.widget.Toast;
+
 
 import com.steelparrot.freedecibel.R;
+import com.steelparrot.freedecibel.activities.YTItemActivity;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link MP3#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class MP3 extends Fragment {
+public class MP3 extends Fragment{
+
+    public interface OnMP3DataPass {
+        public void onFormatPass(YTItemActivity.Format format);
+        public void onBitrateQualityPass(YTItemActivity.BitrateAudioQuality bitrateAudioQuality);
+    }
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
 
     // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
     private AutoCompleteTextView mAutoCompleteTextView;
-    private Button mDownloadMP3;
+    OnMP3DataPass mOnDataPass;
 
     public MP3() { }
 
@@ -39,26 +38,27 @@ public class MP3 extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
      * @return A new instance of fragment MP3.
      */
     // TODO: Rename and change types and number of parameters
-    public static MP3 newInstance(String param1, String param2) {
+    public static MP3 newInstance(String url) {
         MP3 fragment = new MP3();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        mOnDataPass = (OnMP3DataPass) context;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+            // implement on need
         }
     }
 
@@ -72,15 +72,39 @@ public class MP3 extends Fragment {
 
         mAutoCompleteTextView = binding.findViewById(R.id.autoCompleteTextView);
         mAutoCompleteTextView.setAdapter(arrayAdapter);
-
-        mDownloadMP3 = binding.findViewById(R.id.button_mp3);
-        mDownloadMP3.setOnClickListener(new View.OnClickListener() {
+        mAutoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onClick(View view) {
-                Toast.makeText(getContext(), "Se descarca imediat, boss! Te pup!", Toast.LENGTH_SHORT).show();
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                if(i==0) {
+                    mOnDataPass.onFormatPass(YTItemActivity.Format.M4A);
+                    mOnDataPass.onBitrateQualityPass(YTItemActivity.BitrateAudioQuality.B128K);
+                }
+                else {
+                    mOnDataPass.onFormatPass(YTItemActivity.Format.MP3);
+                    mOnDataPass.onBitrateQualityPass(MapDropdownPositionToBitrateQuality(i));
+                }
             }
         });
 
         return binding.getRootView();
+    }
+
+    private YTItemActivity.BitrateAudioQuality MapDropdownPositionToBitrateQuality(int pos) {
+        if(pos == 1) {
+            return YTItemActivity.BitrateAudioQuality.B64K;
+        }
+        else if(pos == 2) {
+            return YTItemActivity.BitrateAudioQuality.B128K;
+        }
+        else if(pos == 3) {
+            return YTItemActivity.BitrateAudioQuality.B192K;
+        }
+        else if(pos == 4) {
+            return YTItemActivity.BitrateAudioQuality.B256K;
+        }
+        else if(pos == 5) {
+            return YTItemActivity.BitrateAudioQuality.B320K;
+        }
+        return null;
     }
 }

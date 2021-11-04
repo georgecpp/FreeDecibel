@@ -1,11 +1,17 @@
 package com.steelparrot.freedecibel.activities;
 
+import static java.security.AccessController.getContext;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,10 +26,14 @@ import com.steelparrot.freedecibel.databinding.ActivityMainBinding;
 import com.steelparrot.freedecibel.model.YTItem;
 import com.steelparrot.freedecibel.network.GetDataService;
 import com.steelparrot.freedecibel.network.RetrofitClientInstance;
+import com.yausername.ffmpeg.FFmpeg;
+import com.yausername.youtubedl_android.YoutubeDL;
+import com.yausername.youtubedl_android.YoutubeDLException;
 
 import java.util.HashMap;
 import java.util.List;
 
+import io.reactivex.internal.operators.single.SingleDoAfterTerminate;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -33,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
     private CustomAdapter mAdapter;
     ProgressDialog mProgressDialog;
     ActivityMainBinding binding;
+    static int dark_light = 0;
+    static int themeIconResId = R.drawable.ic_baseline_dark_mode_24;
+
+    private static final String TAG = "YTItem_ytdl_init";
 
     private void searchYT(String query)
     {
@@ -76,6 +90,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        try {
+            YoutubeDL.getInstance().init(getApplication());
+            FFmpeg.getInstance().init(getApplication());
+        } catch (YoutubeDLException e) {
+            Log.e(TAG, "failed to initialize youtubedl-android", e);
+        }
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         binding.setIsData(false);
     }
@@ -83,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(binding.getIsData()) {
+        if (binding.getIsData()) {
             binding.setIsData(true);
         }
     }
@@ -92,13 +112,38 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.nav_menu,menu);
         MenuItem searchItem=menu.findItem(R.id.nav_search);
+        MenuItem darkTheme = menu.findItem(R.id.nav_dark);
+        MenuItem downloadLater=menu.findItem(R.id.nav_download_later);
         SearchView searchView= (SearchView) searchItem.getActionView();
         searchView.setQueryHint("Write keywords here...");
         searchView.setOnSearchClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 searchView.setMaxWidth(android.R.attr.width);
-                setItemsVisibility(menu,searchItem,false);
+            }
+        });
+
+        downloadLater.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                Intent intent=new Intent(getApplicationContext(),DownloadLaterActivity.class);
+                startActivity(intent);
+                return true;
+            }
+        });
+        darkTheme.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                if (dark_light % 2 == 0) {
+                    dark_light++;
+                    themeIconResId=R.drawable.ic_baseline_light_mode_24;
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                } else {
+                    dark_light++;
+                    themeIconResId=R.drawable.ic_baseline_dark_mode_24;
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                }
+                return true;
             }
         });
 
@@ -115,7 +160,25 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem searchItem = menu.findItem(R.id.nav_search);
+        MenuItem darkTheme = menu.findItem(R.id.nav_dark);
+        darkTheme.setIcon(themeIconResId);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+        searchView.setQueryHint("Write keywords here...");
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                searchView.setMaxWidth(android.R.attr.width);
+            }
+
+        });
+        return super.onPrepareOptionsMenu(menu);
     }
     private void setItemsVisibility(Menu menu, MenuItem exception,boolean visibility)
     {
@@ -128,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-  
+
     // method to generate list of data using RecyclerView with custom adapter
     private void generateDataList(List<YTItem> dataList) {
         mAdapter = new CustomAdapter(this, dataList);
